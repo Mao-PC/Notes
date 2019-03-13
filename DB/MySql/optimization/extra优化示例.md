@@ -62,9 +62,10 @@ select a1, a2, a3, a4 from test03 where a1 = 1 and a4 = 3 order by a2, a3 ;
 
 ---
 
-**_小结_** : 如果复合索引和使用顺序完全一致且不跨列使用, 则复合索引全部使用  
+**_小结_** : 如果复合索引和使用顺序完全一致且不跨列使用, 则复合索引全部使用
 
 ---
+
 [explain 参数说明](./explain参数说明.md)  
-[MySQL优化](./README.md)  
+[MySQL 优化](./README.md)  
 [主页](../../../../../)

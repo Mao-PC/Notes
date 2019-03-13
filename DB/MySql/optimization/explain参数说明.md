@@ -186,8 +186,9 @@ select age , name  from ... where age = ... ; # 这条sql中必须回原表查na
 select * from test02 where a1 = 'y' and a1 = 'x';
 ```
 
-[extra 优化示例](./extra优化示例.md)  
+[extra 优化示例](./extra优化示例.md)
 
 ---
-[MySQL优化](./README.md)  
+
+[MySQL 优化](./README.md)  
 [主页](../../../../../)

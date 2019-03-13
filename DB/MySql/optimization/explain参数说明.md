@@ -117,11 +117,12 @@ name2 是一个 varchar(20) 的索引, 所以此时的 key_len = 20 \* 3 + 1(nul
 对于上图中的查询来说, 查询字段为 a1, 但是根据 a2 字段排序, 所以需要 '额外' 的执行一次查询
 
 ![explain_extra1](./res/explain_extra1.png)
-上图中, 表中存在了复合索引 idx_a1_a2_a3 (a1, a2, a3), 这里也出现了 using filesort, 因为这里把 复合索引中的 a2 '跨'了过去
+上图中, 表中存在了复合索引 idx_a1_a2_a3 (a1, a2, a3), 这里也出现了 using filesort, 因为这里把 复合索引中的 a2 '跨'了过去  
 
 **_小结:_**  
+
 索引类型 | 出现 using filesort 的原因 | 避免方法
--|-|-
+----|-----|--------
 单索引 | 如果排序和查找的是同一个字段, 就不会出现 using filesort , 如果不是同一个字段就会出现 | where 哪些字段, 就 order by 哪些字段
 符合索引 | 不能跨列 (最佳左前缀) | where 和 order by 按照复合索引的顺, 不要跨列或无序使用
 

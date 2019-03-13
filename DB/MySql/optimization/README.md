@@ -1,5 +1,8 @@
 # MySQL 优化
 
+## 原理
+- [MySQL逻辑分层](./MySQL逻辑分层.md)
+- [SQL解析过程及优化](./SQL解析过程及优化.md)
 ## sql 性能问题
 
 -   分析 sql 的执行计划: explain 可以模拟 sql 优化器执行 sql 语句

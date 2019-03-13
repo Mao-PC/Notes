@@ -30,7 +30,7 @@ SQL 优化, 主要就是优化索引
 > 3 层的 B 树可以存放上百万数据  
 > MySQL 中使用的是 B+树, 数据统一存放到叶节点中  
 > B+ 树中查询任意数据次数均为 n 次(n 是 B+ 树的高度)  
-> B 树  资料可以参考: [浅谈算法和数据结构: 十 平衡查找树之 B 树](http://www.cnblogs.com/yangecnu/p/Introduce-B-Tree-and-B-Plus-Tree.html)
+> B 树的资料可以参考: [浅谈算法和数据结构: 十 平衡查找树之 B 树](http://www.cnblogs.com/yangecnu/p/Introduce-B-Tree-and-B-Plus-Tree.html)
 
 索引的缺点:
 

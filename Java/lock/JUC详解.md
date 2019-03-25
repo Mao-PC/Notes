@@ -3,12 +3,13 @@
 ### Lock 锁接口实现
 
 Lock 的核心 API
-方法|描述
--|-
-lock | 获取锁， 若锁被其他线程占用，则阻塞
-lockInterruptibly | 在获取锁的过程中可以中断当前线程
-tryLock | 尝试非阻塞地获取锁，立即返回
-unlock | 释放锁
+
+方法|描述  
+-|-  
+lock | 获取锁， 若锁被其他线程占用，则阻塞  
+lockInterruptibly | 在获取锁的过程中可以中断当前线程  
+tryLock | 尝试非阻塞地获取锁，立即返回  
+unlock | 释放锁  
 
 > 根据 Lock 借口源码的注释，Lock 接口的实现和 synchronize 具有相同的内存语义
 

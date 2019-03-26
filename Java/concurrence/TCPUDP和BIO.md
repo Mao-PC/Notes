@@ -313,9 +313,9 @@ public class BIOServer {
 
 ```
 
-在浏览器访问 localhost:8080 时，客户端端结果：
-![BIO_Socket_client1](res/BIO_Socket_client1.png)
-服务端结果：
+在浏览器访问 localhost:8080 时，客户端端结果：  
+![BIO_Socket_client1](res/BIO_Socket_client1.png)  
+服务端结果：  
 ![BIO_Socket_server5](res/BIO_Socket_server5.png)
 
 #### BIO 阻塞 IO 的含义

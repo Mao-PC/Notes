@@ -505,6 +505,208 @@ Tomcat8 中，已经完全去了 BIO 相关的网络处理代码，默认使用 
 DougLea 的著名文章[《Scalable IO in Java》](http://gee.cs.oswego.edu/dl/cpjslides/nio.pdf)  
 ![NIO结合多线程改进方案](res/NIO结合多线程改进方案.png)
 
+```java
+package nio;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.*;
+import java.util.Iterator;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class NIOReactorServer {
+    // 处理业务逻辑的线程
+    private static ExecutorService workPool = Executors.newCachedThreadPool();
+
+    private ServerSocketChannel serverSocketChannel;
+
+    /**
+     * 封装了selector.select()等事件轮询方法
+     */
+    abstract class ReactorThread extends Thread {
+        Selector selector;
+        LinkedBlockingQueue<Runnable> taskQueue = new LinkedBlockingQueue<>();
+
+        /*
+        selector 监听到有事件后，调用这个方法
+         */
+        public abstract void handler(SelectableChannel channel) throws Exception;
+
+        public ReactorThread() throws IOException {
+            selector = Selector.open();
+        }
+
+        volatile boolean running = false;
+
+        @Override
+        public void run() {
+            // 轮询selector事件
+            while (true) {
+                try {
+                    // 执行队列中的任务
+                    Runnable task;
+                    while ((task = taskQueue.poll()) != null) {
+                        task.run();
+                    }
+                    selector.select(1000);
+
+                    // 获取查询结果
+                    Set<SelectionKey> selectionKeys = selector.selectedKeys();
+                    // 遍历
+                    Iterator<SelectionKey> iterator = selectionKeys.iterator();
+
+                    while (iterator.hasNext()) {
+                        SelectionKey key = iterator.next();
+                        // 从集合中移除要处理的连接
+                        iterator.remove();
+
+                        int readyOps = key.readyOps();
+
+                        // 关注accept和read这两个事件
+                        if ((readyOps & (SelectionKey.OP_ACCEPT | SelectionKey.OP_READ)) != 0 || readyOps == 0) {
+                            try {
+                                SelectableChannel channel = (SelectableChannel) key.attachment();
+                                channel.configureBlocking(false);
+                                handler(channel);
+                                if (!channel.isOpen()) {
+                                    key.cancel();
+                                }
+                            } catch (Exception e) {
+                                key.cancel();
+                            }
+                        }
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
+
+        private SelectionKey register(SelectableChannel channel) throws ExecutionException, InterruptedException {
+            // 为什么register要以任务提交的形式，让reactor线程去处理？
+            // 因为线程在执行channel注册到selector的过程中，会和调用selector.select()方法的线程争用同一把锁
+            // 而select()方法实在eventLoop中通过while循环调用的，争抢的可能性很高，为了让register能更快的执行，就放到同一个线程来处理
+            FutureTask<SelectionKey> futureTask = new FutureTask<>(() -> channel.register(selector, 0, channel));
+            taskQueue.add(futureTask);
+            return futureTask.get();
+        }
+
+        private void doStart() {
+            if (!running) {
+                running = true;
+                start();
+            }
+        }
+    }
+
+    // 1. 创建多个线程 - accept处理reactor线程 （accept线程）
+    private ReactorThread[] mainReactorThreads = new ReactorThread[1];
+    // 2. 创建多个线程 - io处理reactor线程 （IO线程）
+    private ReactorThread[] subReactorThreads = new ReactorThread[8];
+
+    /*
+    初始化线程组
+     */
+    private void newGroup() throws IOException {
+        // 创建IO线程，负责处理客户端以后socketchannel的IO读写
+        for (int i = 0; i < subReactorThreads.length; i++) {
+            subReactorThreads[i] = new ReactorThread() {
+                @Override
+                public void handler(SelectableChannel channel) throws Exception {
+                    // work 线程只负责 IO 处理， 不处理accept 事件
+                    SocketChannel ch = (SocketChannel) channel;
+                    ByteBuffer requstBuffer = ByteBuffer.allocate(1024);
+                    while (ch.isOpen() && ch.read(requstBuffer) != -1) {
+                        // 长连接情况下,需要手动判断数据有没有读取结束 (此处做一个简单的判断: 超过0字节就认为请求结束了)
+                        if (requstBuffer.position() > 0) break;
+                    }
+
+                    if (requstBuffer.position() == 0) return;// 如果没数据了, 则不继续后面的处理
+
+                    requstBuffer.flip();
+                    byte[] content = new byte[requstBuffer.limit()];
+                    requstBuffer.get(content);
+                    System.out.println(new String(content));
+                    System.out.println(Thread.currentThread().getName() + "收到数据，来自：" + ch.getRemoteAddress());
+
+                    workPool.submit(() -> {
+                        //TODO 业务操作，数据库，接口。。。
+                    });
+
+                    // 返回响应
+                    String response = "HTTP/1.1 200 OK\r\n" +
+                            "Content-Length: 11\r\n\r\n" +
+                            "Hello World";
+                    ByteBuffer byteBuffer = ByteBuffer.wrap(response.getBytes());
+                    while (byteBuffer.hasRemaining()) {
+                        ch.write(byteBuffer);
+                    }
+                }
+            };
+        }
+
+        // 创建mainReactor 线程，只负责处理serverSocketChannel
+        for (int i = 0; i < mainReactorThreads.length; i++) {
+            mainReactorThreads[i] = new ReactorThread() {
+                AtomicInteger incr = new AtomicInteger(0);
+
+                @Override
+                public void handler(SelectableChannel channel) throws Exception {
+                    // 只做请求分发，不做具体的数据读取
+                    ServerSocketChannel ch = (ServerSocketChannel) channel;
+                    SocketChannel socketChannel = ch.accept();
+                    socketChannel.configureBlocking(false);
+                    // 收到连接建立的通知后，分发给IO线程去读取数据
+                    int index = incr.getAndIncrement() % subReactorThreads.length;
+                    ReactorThread workEventLoop = subReactorThreads[index];
+                    workEventLoop.doStart();
+                    ;
+                    SelectionKey selectionKey = workEventLoop.register(socketChannel);
+                    selectionKey.interestOps(SelectionKey.OP_READ);
+                    System.out.println(Thread.currentThread().getName() + "收到新连接 : " + socketChannel.getRemoteAddress());
+                }
+            };
+        }
+    }
+
+    /**
+     * 初始化channel,并且绑定一个eventLoop线程
+     *
+     * @throws Exception
+     */
+    private void initAndRegister() throws Exception {
+        // 1. 创建ServerSocketChannel
+        serverSocketChannel = ServerSocketChannel.open();
+        serverSocketChannel.configureBlocking(false);
+        // 2. 将ServerSocketChannel注册到selector
+        int index = new Random().nextInt(mainReactorThreads.length);
+        mainReactorThreads[index].doStart();
+        SelectionKey selectionKey = mainReactorThreads[index].register(serverSocketChannel);
+        selectionKey.interestOps(SelectionKey.OP_ACCEPT);
+    }
+
+    private void bind() throws Exception {
+        // 绑定端口
+        serverSocketChannel.bind(new InetSocketAddress(8080));
+        System.out.println("启动完成端口为8080");
+    }
+
+    public static void main(String[] args) throws Exception {
+        NIOReactorServer server = new NIOReactorServer();
+        server.newGroup(); // 1、 创建main和sub两组线程
+        server.initAndRegister(); // 2、 创建serverSocketChannel，注册到mainReactor线程上的selector上
+        server.bind(); // 3、 为serverSocketChannel绑定端口
+    }
+}
+
+```
+
 ---
 
 [并发](./README.md)  

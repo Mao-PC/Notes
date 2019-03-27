@@ -252,7 +252,7 @@ public class NIOClient {
 在一个客户端中输入，运行结果：  
 客户端：  
 ![NIO_Channel_client](res/NIO_Channel_client.png)  
-服务端：
+服务端：  
 ![NIO_Channel_server1](res/NIO_Channel_server1.png)
 
 发现坑爹了，经过修改使用 Channel 后服务端不能接收多个连接了。。。  

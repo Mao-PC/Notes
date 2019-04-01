@@ -10,7 +10,7 @@
 -   ChannelPipeline 职责链设计模式：事件处理机制
 -   内存管理： 增强 BytyBuffer 缓存区
 
-Netty 整体结构图：
+Netty 整体结构图：  
 ![Netty整体结构图](res/Netty整体结构图.png)  
 可以看出 Netty 有三大模块：
 

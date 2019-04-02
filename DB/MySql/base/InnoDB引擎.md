@@ -84,4 +84,71 @@ InnoDB引擎中，存在两种Checkpoint：
 #### Master Thread 工作方式
 ##### InnoDB 1.0.x版本之前的Master Thread
 Master Thread具有最高的线程优先级别，内部有多个循环（loop）组成：主循环（loop）、后台循环（backgroup loop）、暂停循环（suspend loop）。Master Thread会根据数据库运行状态在各个循环之间切换。  
-Loop被称为主循环，因为大部分操作都在这个循环中，分为每秒操作和每十秒操作：
+Loop被称为主循环，因为大部分操作都在这个循环中，分为每秒操作和每十秒操作：  
+
+伪代码实现：  
+
+```java
+    private int last_one_second_ios;
+    private int buf_get_modified_ratio_pct;
+    private int innodb_max_dirty_pages_pct;
+    private boolean userActivity;
+    private int last_ten_second_ios;
+    private boolean idle;
+
+    void master_thread() throws Exception {
+        // 主循环
+        mainLoop:
+        while (true) {
+            for (int i = 0; i < 10; i++) {
+                TimeUnit.SECONDS.sleep(1);
+                //TODO 每秒完成的工作
+                //TODO 日志缓冲刷到磁盘中
+                if (last_one_second_ios < 5) {
+                    //TODO Insert Buffer
+                }
+                if (buf_get_modified_ratio_pct > innodb_max_dirty_pages_pct) {
+                    //TODO 刷新100个脏页写入磁盘中
+                }
+                if (userActivity) {
+                    //TODO 如果没有任何活动，就转为后台循环
+                    break backgroundLoop;
+                }
+            }
+            //TODO 每十秒完成的工作
+            if (last_ten_second_ios < 200) {
+                //TODO 刷新100个脏页到磁盘中
+            }
+            //TODO 合并最多5个Insert Buffer
+            //TODO 日志缓冲刷新到磁盘
+            //TODO 删除无用的Undo page
+            if (buf_get_modified_ratio_pct > 0.7) {
+                //TODO 刷新 100 个脏页到磁盘
+            } else {
+                //TODO 刷新 10 个脏页到磁盘
+            }
+
+            // 后台循环
+            backgroundLoop:
+            while (true) {
+                //TODO 删无用Undo page
+                //TODO 合并插入20个Insert Buffer
+                //TODO 调回到主循环
+                if (idle) {
+                    //TODO 如果空闲就跳回主循环
+                    break mainLoop;
+                } else {
+                    //TODO 跳到Flush Loop
+                    break flushLoop;
+                }
+            }
+
+            flushLoop:
+            while (true) {
+                //TODO suspend_thread()
+                break mainLoop;
+            }
+        }
+    }
+
+```

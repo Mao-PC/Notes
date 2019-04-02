@@ -335,7 +335,78 @@ write\* 方法调用时，通过 AbstractByteBuf.ensureWritable(length)进行检
 
 ![Netty-ByteBuf的实现](res/Netty-ByteBuf的实现.png)
 
-在使用中，都是通过 ByteBufAllocator 分配器进行申请，同时分配器具有内存管理的功能。
+在使用中，都是通过 ByteBufAllocator 分配器进行申请，同时分配器具有内存管理的功能。  
+
+- 堆内/堆外：是否使用Java堆内内存
+- pool/unpool：是否池化，复用
+- safe/unsafe：unsafe 意味着不不安全，是Java底层直接操作内存的一种实现，能带来性能的提升，Netty中会使用unsafe。但是在开发过程中不建议开发人员直接使用unsafe。  
+
+Netty中默认使用 PooledUnsafeDirectByteBuf。建议开发人员使用UnpooledHeapByteBuf。
+
+##### PooledByteBuf 对象、内存复用  
+
+**PoolThreadCache：** PooledByteBufAllocator 实例维护的一个线程变量。  
+多种分类**MemoryRegionCache 数组**用作内存缓存，MemoryRegionCache 内部是链表，队列里面存Chunk。  
+PoolChunk里面维护了内存引用，内存复用的做法就是把buf 的 memory 指向 chunk 的 memory。  
+
+PooledByteBufAllocator.ioBuffer运作过程梳理：
+
+![Netty-PooledByteBuf内存复用](res/Netty-PooledByteBuf内存复用.png)
+
+#### 零拷贝机制
+
+Netty的零拷贝机制，是一种应用层的实现。底层和JVM、操作系统内存机制并无太大关联。使用ByteBuf是Netty高性能很重要的一个原因  
+
+![Netty-零拷贝机制](res/Netty-零拷贝机制.png)
+
+零拷贝示例：
+```java
+package nio;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.Unpooled;
+import org.junit.Test;
+
+/**
+ * 零拷贝示例
+ */
+public class ZeroCopy {
+
+    // 合并测试
+    @Test
+    public void compositeTest() {
+        ByteBuf buffer1 = Unpooled.buffer(3);
+        buffer1.writeByte(1);
+        ByteBuf buffer2 = Unpooled.buffer(3);
+        buffer2.writeByte(4);
+
+        CompositeByteBuf compositeBuffer = Unpooled.compositeBuffer();
+        CompositeByteBuf newBuf = compositeBuffer.addComponents(true, buffer1, buffer2);
+        System.out.println(newBuf);
+    }
+
+    // 拆分测试
+    @Test
+    public void sliceTest() {
+        ByteBuf byteBuf = Unpooled.wrappedBuffer("hello".getBytes());
+        ByteBuf slice = byteBuf.slice(1, 2);
+        slice.unwrap();
+        System.out.println(slice);
+    }
+
+    // 转换测试
+    @Test
+    public void wrapTest() {
+        byte[] arr = {1, 2, 3, 4, 5};
+        ByteBuf buf = Unpooled.wrappedBuffer(arr);
+        System.out.println(buf.getByte(4));
+        arr[4] = 6;
+        System.out.println(buf.getByte(4));
+    }
+
+}
+```
 
 ---
 

@@ -177,4 +177,85 @@ public class LoaderTest {
 
 **标记-整理（Mark-Compack）**：类似于标记清除，但是为了避免内存碎片化，会在清除过程中移动对象，以确保移动后的对象占用连续的内存空间
 
-JVM 的垃圾回收：
+**JVM 的垃圾回收**
+
+根据对象的存活周期，将内存划分为不同的几个区域，不同的区域使用不同的垃圾回收算法。
+
+-   Minor GC：年轻代空间（包括 Eden 和 Survivor 区域）回收内存
+-   Major GC：老年代回收
+-   Full GC：清理整个堆空间—包括年轻代和老年代
+
+**Minor GC：**
+
+新对象会分配到 Eden，如果超过 -XX:+PretenureSizeThreshold 设置的大对象直接进入老年代
+
+![minorGC](res/minorGC.png)
+
+Minor GC 一定次数未回收对象会移动到老年代 -XX:MaxTenuringThreshold
+
+**Major GC：**
+
+![majorGC](res/majorGC.png)
+
+#### 垃圾回收器
+
+##### 串行收集器
+
+###### Serial 收集器
+
+Serial 收集器，一个单线程的串行收集器，适合单处理机器机器。Client 模式 JVM 的默认垃圾回收器。由于单线程回收，在回收时会出现 ”Stop The World“
+新生代使用： **-Serial GC -XX:+UseSerialGC**  
+老年代使用： **-Serial Old -XX:+UseSerialOldGC**
+
+![serialGC](res/serialGC.png)
+
+##### 并行收集器
+
+###### Parallel 收集器
+
+Parallel 收集器，Server 模式 JVM 默认 GC 选择，整体算法和 Serial 相似。可以设置 GC 时间或吞吐量等值，可以自动适应性调整 Eden、Survivor 大小和 MaxTenuringThreshold 的值。
+
+新生代使用： **-Parallel GC -XX:+UseParallelGC**
+老年代使用： **-Parallel Old GC -XX:+UseParallelOldGC**
+
+也被称为吞吐量优先的 GC 收集器：吞吐量 = 用户代码运行时间/(用户代码运行时间 + GC 时间)
+
+-XX:ParallelGCThreads：设置垃圾回收的线程数。通常情况下和 CPU 数量相等  
+-XX:MaxGCPauseMills：设置最大垃圾回收停顿时间。
+-XX:GCTimeRatio：设置吞吐量，0-100。
+-XX:+UseAdaptiveSizePolicy：打开 GC 自适应策略。默认打开
+
+###### ParNew 收集器
+
+ParNew 收集器， **ParNew GC -XX:+UseParNewGC**，是**新生代 GC**，是 Serial GC 的多线程版本.可以控制线程数量：**-XX:ParallelGCThreads**。  
+常见使用场景为配合老年代 CMS GC 工作。
+
+##### 并发收集器
+
+###### CMS
+
+CMS（Concurrent Mark Sweep）GC，**-XX:UseConcMarkSweepGC**  
+**专用于老年代**，基于 **标记-清除** 算法，设计目标为尽量减少停顿时间。
+
+缺点：
+
+-   存在内存碎片问题，长时间运行等情况下出现 Full GC，导致恶劣的停顿。
+-   占用更多的 CPU 资源，和用户线程争抢。
+
+减少了停顿时间，这对于互联网 web 等对于时间敏感的系统非常重要。（CMS 已经没有太大的优化空间，JDK 1.8 已经放弃维护，在后续版本中有可能会被剔除）
+
+![cmsGC](res/cmsGC.png)
+
+在初始编辑和重新标记这两步，仍会发生 ”Stop The World“
+
+###### G1
+
+G1 收集器在 JDK 1.7 中开始投入使用，JDK 1.9 后成为默认收集器，目标是替代 CMS，针对大堆内存设计的收集器，兼顾吞吐量和停顿时间。 **-XX:UserG1GC**
+G1 将堆分为固定大小的区域，Region 之间是复制算法，但整体上仍然可以看做是标记整理算法，可以有效的避免内存碎片。  
+红色新生代（Eden 和 Survivor），蓝色老年代。找不到大内存时执行 Full GC。
+
+![g1GC](res/g1GC.png)
+
+##### GC 组合
+
+![GC组合](res/GC组合.png)

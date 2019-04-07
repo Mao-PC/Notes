@@ -185,6 +185,10 @@ public class LoaderTest {
 -   Major GC：老年代回收
 -   Full GC：清理整个堆空间—包括年轻代和老年代
 
+> 补充说明：TLAB（Thread LocalAllocation Buffer）线程本地分配缓存，是一个线程私有的内存区域。该设计是为了加速对象分配速度。由于对象一般都是分配在堆上，而对是线程共享的。因此肯定有锁，虽然使用 CAS 的操作，但性能仍有优化空间。通过为每一个线程分配一个 TLAB 的空间（在 eden 区），可以消除多个线程同步的开销。默认开启。可以使用-XX:-UseTLAB 禁用。
+> 对象可能汇总栈上分配、TLAB 分配、堆上分配，流程如下：
+> ![对象的分配流程](res/对象的分配流程.png)
+
 **Minor GC：**
 
 新对象会分配到 Eden，如果超过 -XX:+PretenureSizeThreshold 设置的大对象直接进入老年代

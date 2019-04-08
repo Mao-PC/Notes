@@ -111,6 +111,28 @@ public class PerformanceApplication {
 }
 ```
 
+调优过程：
+
+```shell
+# 查找到 performance-1.0.0.jar 的进程号，这里假设进程号为 5755
+jcmd | grep "performance-1.0.0.jar" | awk '{print $1}'
+
+# jmap 打印出 heap 概要信息， GC 使用的算法，heap 的配置及 wiseheap 的使用情况
+jmap -heap 5755
+
+# 收集 GC 日志（日志离线分析，主要用于检测故障看是不是由于 GC 导致的程序卡顿）
+# 不建议直接输出 java -Xmx1024m -XX:+PrintGCDetails -XX:+PrintGCTimeStamp -jar performance-1.0.0.jar
+java -Xmx1024m -Xloggc:gc/gc.log -jar performance-1.0.0.jar
+
+# 分析 GC 日志，
+GCViewer 工具，分析 GC 日志文件 https://github.com/chewiebug/GCViewer
+
+# 实时分析
+# jstat 动态监听 GC 统计信息，间隔1000ms统计一次，每十行数据后输出列标题
+jstat -gc -h10 5755 1000
+
+```
+
 ---
 
 [内存模型](./README.md)  

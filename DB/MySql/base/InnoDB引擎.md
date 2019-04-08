@@ -91,7 +91,7 @@ Loop被称为主循环，因为大部分操作都在这个循环中，分为每�
 ```java
     private int last_one_second_ios;
     private int buf_get_modified_ratio_pct;
-    private int innodb_max_dirty_pages_pct;
+    private double innodb_max_dirty_pages_pct = 0.9;
     private boolean userActivity;
     private int last_ten_second_ios;
     private boolean idle;
@@ -152,3 +152,129 @@ Loop被称为主循环，因为大部分操作都在这个循环中，分为每�
     }
 
 ```
+
+- 主循环的工作流程
+    - 每秒工作：
+        1. （总是）日志缓冲刷新到磁盘中，及时这个事务还没有提交
+        2. 前一秒发生的IO次数小于5时，InnoDB认为当前IO压力小，可以进行合并插入缓冲
+        3. 当前缓冲池内脏页比例如果超过了配置文件中配置的innodb_max_dirty_pages_pct（默认90，即90%），就将100个脏页刷新到磁盘中
+    - 每十秒工作：
+        1. 过去10秒内IO次数如果小于200次，有足够的IO能力，就会将100个脏页刷新到磁盘
+        2. （总是）合并至多5个插入缓冲
+        3. （总是）将日志缓冲刷新到磁盘
+        4. （总是）至多删除20个 undo page
+        5. （总是）缓冲池中脏页比例 buf_get_modified_ratio_pct 超过 70%，刷新100个脏页到磁盘，如果没超过 70%，则刷新10%的脏页
+- BackgroundLoop的工作流程
+    1. （总是）删除无用的undo page
+    2. （总是）合并20个插入缓冲
+    3. （总是）跳回到主循环
+    4. （可能，跳转到FlushLoop中完成）不断刷新100个页，直到符合条件
+
+
+![InnoDB 1.0.x之前的Master Thread工作流程](res/InnoDB1.0.x之前的MasterThread工作流程.png)
+
+##### InnoDB 1.2.x版本之前的 Master Thread
+
+1.0.x 之前的版本的InnoDB对IO是有限制的，在缓冲池向磁盘刷新时都做了一定的**硬编码**：  
+- InnoDB置灰刷新100个脏页的写入磁盘中
+- 合并20个插入穿冲
+- 每次 full purge 时最多回收 20 个 Undo 页
+
+在写入密集时，每秒可能会产生大于100个脏页，如果产生大于20个插入缓冲的情况InnoDB会做的很慢。同时，在发生宕机恢复的时间可能会很长。
+
+在1.0.x版本中提供了参数 innodb_io_capacity ，用来表示磁盘IO的吞吐量，默认为200。对于刷新到磁盘页的数量，会按照 innodb_io_capacity 的百分比来控制：  
+- 在合并插入缓冲中，合并数量为 innodb_io_capacity 的 5%
+- 在缓冲区刷新脏页时，刷新脏页的数量为 innodb_io_capacity
+
+1.0.x 之前的版本的另一个问题，参数 innodb_max_dirty_pages_pct 默认值为 90， 意味着脏页占缓冲池的 90%。这个值太大了，如果有很大的内存或者数据库压力很大时刷新脏页的速度反而会降低。同样，在数据恢复阶段可能需要更长的时间。  
+从 1.0.x 版本将 innodb_max_dirty_pages_pct 的默认值设置为 75。  
+
+1.0.x 版本增加了另一个参数 innodb_adaptive_flushing （自适应刷新），该值影响每秒刷新脏页的数量。原先逻辑是：脏页在缓冲池中的比例小于 innodb_max_dirty_pages_pct 时不会刷新脏页，在大于 innodb_max_dirty_pages_pct 时刷新 100 个脏页。现在在小于 innodb_max_dirty_pages_pct 时也会刷新一定量的脏页。  
+
+引入了 innodb_purge_batch_size，可以控制每次回收的脏页数量，默认为20。 
+
+从 InnoDB 1.0.x 版本开始，伪代码流程：
+
+```java
+    private int last_one_second_ios;
+    private int buf_get_modified_ratio_pct;
+    private double innodb_max_dirty_pages_pct = 0.75;
+    private boolean userActivity;
+    private int last_ten_second_ios;
+    private boolean idle;
+    private int innodb_io_capacity = 200;
+    private boolean innodb_adaptive_flushing = true;
+
+    void master_thread() throws Exception {
+        // 主循环
+        mainLoop:
+        while (true) {
+            for (int i = 0; i < 10; i++) {
+                TimeUnit.SECONDS.sleep(1);
+                //TODO 每秒完成的工作
+                //TODO 日志缓冲刷到磁盘中
+                if (last_one_second_ios < innodb_io_capacity * 0.05) {
+                    //TODO 合并 5% * innodb_io_capacity 的插入缓冲
+                }
+                if (buf_get_modified_ratio_pct > innodb_max_dirty_pages_pct) {
+                    //TODO 刷新 innodb_io_capacity 个脏页写入磁盘中
+                } else if (innodb_adaptive_flushing) {
+                    //TODO 刷新一定数量的脏页
+                }
+                if (userActivity) {
+                    //TODO 如果没有任何活动，就转为后台循环
+                    break backgroundLoop;
+                }
+            }
+            //TODO 每十秒完成的工作
+            if (last_ten_second_ios < innodb_io_capacity) {
+                //TODO 刷新 innodb_io_capacity 个脏页到磁盘中
+            }
+            //TODO 合并最多 5% * innodb_io_capacity 个 Insert Buffer
+            //TODO 日志缓冲刷新到磁盘
+            //TODO 删除无用的Undo page
+            if (buf_get_modified_ratio_pct > 0.7) {
+                //TODO 刷新 innodb_io_capacity 脏页到磁盘
+            } else {
+                //TODO 刷新 10% * innodb_io_capacity 个脏页到磁盘
+            }
+
+            // 后台循环
+            backgroundLoop:
+            while (true) {
+                //TODO 删无用Undo page
+                //TODO 合并插入 innodb_io_capacity 个Insert Buffer
+                //TODO 跳回到主循环
+                if (idle) {
+                    //TODO 如果空闲就跳回主循环
+                    break mainLoop;
+                } else {
+                    //TODO 跳到Flush Loop
+                    break flushLoop;
+                }
+            }
+
+            flushLoop:
+            while (true) {
+                //TODO suspend_thread()
+                break mainLoop;
+            }
+        }
+    }
+```
+
+![InnoDB1.0.x的MasterThread工作流程](res/InnoDB1.0.x的MasterThread工作流程.png)
+
+##### InnoDB 1.2.x版本的 Master Thread
+
+伪代码如下：  
+
+```java
+    if (idle) {
+        srv_master_do_idle_tasks();
+    } else {
+        srv_master_do_active_tasks();
+    }
+```
+
+srv_master_do_idle_tasks()是之前版本中的每十秒操作。srv_master_do_active_tasks()是之前的每秒操作。同时对于刷新在脏页的操作从 Master Thread 分离到了一个单独的 Page Cleaner Thread，减轻了 Master Thread 的工作。

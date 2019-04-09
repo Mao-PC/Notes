@@ -22,6 +22,8 @@ jps（Java Virtual Machine Process Status Tool）显示当前所有 Java 进程 
 -h 参数可以在周期性的数据输出时，输出多少行数据后，跟着输出一个表头信息。  
 interval 制定输出统计周期，count 制定输出多少次数据。
 
+具体参数：[jstat 命令手册](/资料/jstat命令手册.pdf)
+
 ![jstat](res/jstat.png)
 
 ### jcmd
@@ -84,4 +86,4 @@ JvisualVM：很强大，很全面的图形化界面命令，可以查看很多�
 
 [内存模型](./README.md)  
 [Java](../README.md)  
-[主页](../../../../../)
+[主页](/)

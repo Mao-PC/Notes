@@ -1,4 +1,4 @@
-## ActiveMQ
+## ActiveMQ 入门
 
 Apache 出品，JMS1.1 和 J2EE1.4 规范 JMS Provider 实现
 

@@ -1,3 +1,5 @@
+[TOC]
+
 ## ActiveMQ
 
 Apache 出品，JMS1.1 和 J2EE1.4 规范 JMS Provider 实现
@@ -127,9 +129,6 @@ ActiveMQ 支持多种协议和传输方式, 运行客户端使用多种协议连
 JMS 客户端需要使用 ActiveMQSslConnectionFactory 类创建连接, broker-url 以 ssl:// 开头, 以下是 Spring 配置:  
 ![ssl配置](res/ssl.png)
 
-[activemq 主从共享数据库集群方案](activemq主从共享数据库集群方案.md)  
-[activemq-Broker-Cluster 集群部署](activemq-Broker-Cluster集群部署.md)
-
 SSL 主机名验证: 从 ActiveMQ 5.15.6 开始支持 TLS 主机名验证默认客户端启用, 服务端未启用
 
 服务端配置: `ssl://localhost:61616?transport.verifyHostName=true`  
@@ -212,6 +211,89 @@ waitForStart|-1|如果> 0，则表示等待代理启动的超时（以毫秒为�
 | stackTraceEnabled                | true     | 是否应将代理上发生的异常堆栈跟踪发送到客户端？                                                                                                                                                                                     |
 | tcpNoDelayEnabled                | true     | Socket 中的 NoDelay 参数                                                                                                                                                                                                           |
 | tightEncodingEnabled             | true     | 根据 CPU 使用情况, 自动调节传输内容大小                                                                                                                                                                                            |
+
+##### MQTT
+
+MQTT（Message Queuing Telemetry Transport）消息队列遥测传输，IBM 开发的即时通讯协议，在**物联网**架构中重要组成部分
+
+MQTT 发布订阅模型:
+
+![MQTT](res/mqtt.png)
+
+MQTT 服务质量:
+
+**服务质量(QoS)** 级别是一种关于发送者和接收者之间信息投递的保证协议.
+
+MQTT 有三种 QoS: (以下图文转自: [https://www.jianshu.com/p/8b0291e8ee02](https://www.jianshu.com/p/8b0291e8ee02))
+
+-   至多一次 (0)  
+     简而言之，就是仅发一次包，是否收到完全不管，适合那些不是很重要的数据。如:日志发送
+    ![qos0](res/qos0.webp)
+
+-   至少一次 (1)
+    当 client 没收到 service 的 puback 或者 service 没有收到 client 的 puback，那么就会一直发送 publisher
+    流程：（publisher -> broker）
+
+    1.  publisher store msg -> publish ->broker （传递 message）
+    2.  broker -> puback -> publisher delete msg （确认传递成功）
+
+    注意：
+
+    1.  publisher 必须保存 msg，这样才能在重发
+    2.  publisher 如果在一定时间或 socket 断开等异常情况，会继续重发 msg
+
+    ![qos1](res/qos1.webp)
+
+-   只有一次 (2)
+    publisher 和 broker 进行了缓存，其中 publisher 缓存了 message 和 msgID，而 broker 缓存了 msgID，两方都做记录所以可以保证消息不重复，但是由于记录是需要删除的，这个删除流程同样多了一倍
+    流程：（publisher -> broker）
+
+    1.  publisher store msg -> publish ->broker -> broker store msgID（传递 message）
+    2.  broker -> puberc （确认传递成功）
+    3.  publisher -> pubrel -> broker delete msgID （告诉 broker 删除 msgID）
+    4.  broker -> pubcomp -> publisher delete msg （告诉 publisher 删除 msg）
+
+    注意：
+
+    1.  第二步，即 puberc 不可以删除 publisher 的 msg，因为第三步未必成功，这个时候就需要第一步提醒第二步继续发，而提醒必须要 msgID
+        ![qos2](res/qos2.webp)
+
+QoS 是 MQTT 的一个主要功能, 使得在不可靠网络下进行通信变得更为简单, 因为及时是在非常不可靠的网络下, 协议也可以掌握是否需要重复消息并保证消息到达. 它也能帮助客户端根据网络环境和程序逻辑来自由选择 QoS.
+
+ActiveMQ 开启 MQTT:
+
+```xml
+<transportConnectors>
+   <transportConnector name="mqtt" uri="mqtt://localhost:1883"/>
+</transportConnectors>
+```
+
+**通配符:**
+
+| 功能   | ActiveMQ | MQTT |
+| ------ | -------- | ---- |
+| 分隔符 | .        | /    |
+| 元素   | \*       | +    |
+| 子节点 | >        | #    |
+
+示例: 主题名: `foo.blah.bar`, 在使用 MQTT 客户端时, 可以使用 `foo/+/bar`. 在 JMS 订阅, 使用 `foo.*.bar`
+
+##### AMQT
+
+最好不要使用 ActiveMQ, 推荐 RabbitMQ
+
+##### AUTO
+
+自动检测协议, 具体可参考 [http://activemq.apache.org/auto](http://activemq.apache.org/auto).
+
+配置格式: `auto://localhost:5671`
+
+从 ActiveMQ 5.13 版本开始, 开始支持协议检测, 可以自动检测 OpenWire, AMQP, MQTT, SROPM. 允许这四种类型的客户端可以共享一个传输.
+
+MQ 具体的示例代码可以参考: [MQ 的示例代码](/资料/subject-2-mq-master)
+
+[activemq 主从共享数据库集群方案](activemq主从共享数据库集群方案.md)  
+[activemq-Broker-Cluster 集群部署](activemq-Broker-Cluster集群部署.md)
 
 ---
 

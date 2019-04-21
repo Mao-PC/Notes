@@ -119,10 +119,10 @@ RocketMQ 实现了 OpenMessage
 
 ### 高可用
 
--   Master-Slave 主从共享
+-   Master-Slave 主从共享 **解决单点故障问题, 使用同一个数据库实例, 只有一个 Master 能提供服务**
     ![主从共享](res/主从共享.png)
 
--   Master-Slave 主从同步
+-   Master-Slave 主从同步 类似 ZooKeeper 在做集群时只使用一台服务器来做些操作
     ![主从同步](res/主从同步.png)
 
 -   Broker-Cluster 多主集群同步部署

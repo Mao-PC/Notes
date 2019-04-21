@@ -4,6 +4,8 @@
 
 Apache 出品，JMS1.1 和 J2EE1.4 规范 JMS Provider 实现
 
+MQ 具体的示例代码可以参考: [MQ 的示例代码](/资料/subject-2-mq-master)
+
 ### ActiveMQ 和 JMS
 
 **JMS 规范：** Java 消息服务（Java Message Service）程序接口是一个 Java 平台面向消息中间件（MOM）的 API，用于在两个应用程序之间，或分布式系统中发消息，进行异步通信。是一个于平台无关的 API。
@@ -290,12 +292,79 @@ ActiveMQ 开启 MQTT:
 
 从 ActiveMQ 5.13 版本开始, 开始支持协议检测, 可以自动检测 OpenWire, AMQP, MQTT, SROPM. 允许这四种类型的客户端可以共享一个传输.
 
-MQ 具体的示例代码可以参考: [MQ 的示例代码](/资料/subject-2-mq-master)
-
 [activemq 主从共享数据库集群方案](activemq主从共享数据库集群方案.md)  
 [activemq-Broker-Cluster 集群部署](activemq-Broker-Cluster集群部署.md)
 
----
+### ActiveMQ 的持久化方式
+
+Queue 类型的持久化:
+
+![Queue类型的持久化](res/queue.png)
+
+Topic 类型的持久化:
+
+topic 和 queue 不同, 因为 topic 有很多个订阅者, 每个订阅者有可能处理消息的进度不同. MQ 会维护一个 GC 策略, 如果某条消息长时间(可以配置)没有被访问, 那就会被清除
+
+![Topic类型的持久化](res/topic.png)
+
+#### JDBC
+
+将详细存到数据库中
+
+-   优点: 方便管理, 可以支持强一致性
+-   缺点: 性能低
+
+如果在某些业务场景下只需要用到 MQ 的特性而不要求效率时可以使用
+
+#### AMQ
+
+早期版本中, 现在已经不推荐使用
+
+基于文件存储, 写入速度快且容易回恢复, 但是重建索引时间长, 而且索引文件大.
+
+#### KahaDB
+
+是 AMQ 的升级版, 5.4 版本后默认使用的持久化方式
+
+在 activemq.xml 中默认配置
+
+```xml
+<!--
+     Configure message persistence for the broker. The default persistence
+     mechanism is the KahaDB store (identified by the kahaDB tag).
+     For more information, see:
+
+     http://activemq.apache.org/persistence.html
+-->
+<persistenceAdapter>
+     <kahaDB directory="${activemq.data}/kahadb"/>
+</persistenceAdapter>
+```
+
+#### LevelDB
+
+使用 LevelDB 持久化, 已经被废弃
+
+### 事务机制
+
+生产者事务:
+
+![生产者事务](res/transaction.png)
+
+消费者事务:
+
+![消费者事务](res/transaction1.png)
+
+```java
+....
+// 第一个参数为事务开关, 为true则会忽略第二个参数, 被jms服务器设置为SESSION_TRANSACTED
+conn.createSession(true, Session.SESSION_TRANSACTED);
+....
+// 提交事务
+session.commit();
+// 回滚事务
+session.rollback();
+```
 
 [中间件](../README.md)  
 [主页](/)

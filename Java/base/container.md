@@ -93,4 +93,4 @@ public boolean add(E e) {
 
 [基础解析](./README.md)  
 [Java](../README.md)  
-[主页](/)
+[主页](../../../../../)

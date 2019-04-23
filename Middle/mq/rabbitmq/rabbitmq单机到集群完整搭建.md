@@ -180,11 +180,11 @@ RabbitMQ 的有一套默认的配置文件, 能够满足日常的开发, 如果�
     ```
 3. 修改对应主机的 hostname
 
-```sh
-hostname node1
-hostname node2
-hostname node3
-```
+    ```sh
+    hostname node1
+    hostname node2
+    hostname node3
+    ```
 
 4. 将`10.10.1.41`上的 hosts 文件复制到另外两台机器上
     ```sh
@@ -192,7 +192,7 @@ hostname node3
     sudo scp /etc/hosts root@node3:/etc/
     ```
     **`说明：命令中的root是目标机器的用户名，命令执行后，可能会提示需要输入密码，输入对应用户的密码就行了`**
-5. 将`10.10.1.41`上的`/var/lib/rabbitmq/.erlang.cookie`文件复制到另外两台机器上
+5. 将`10.10.1.41`上的`/var/lib/rabbitmq/.erlang.cookie`文件复制到另外两台机器上, Erlang 要求必须要有一样的 cookie
     ```sh
     scp /var/lib/rabbitmq/.erlang.cookie root@node2:/var/lib/rabbitmq/
     scp /var/lib/rabbitmq/.erlang.cookie root@node3:/var/lib/rabbitmq/
@@ -404,6 +404,60 @@ hostname node3
 
 -   镜像队列模式相比较普通模式，镜像模式会占用更多的带宽来进行同步，所以镜像队列的吞吐量会低于普通模式
 -   但普通模式不能实现高可用，某个节点挂了后，这个节点上的消息将无法被消费，需要等待节点启动后才能被消费。
+
+# **其他集群**
+
+**Federation 集群**
+
+Federation 插件设计目的是使 RabbitMQ 在不同的 Broker 之间进行信息传递而无需建立集群, 该功能在以下场景非常有用:
+
+-   各个节点运行在不同版本的 Erlang 和 RabbitMQ 上
+-   网络逻辑不稳定, 比如在广域网中
+
+![Federation集群](res/集群2.png)
+
+在不同 Broker 之间消息先发给 Federation, 然后由 Federation 进行转发
+
+**Shovel 集群**
+
+和 Federation 类似, 但是消息是 Shovel 主动从队列拉取然后转发.
+
+![Shovel集群](res/集群3.png)
+
+# **集群总结**
+
+总的来说 RabbitMQ 集群常用有两种形式: 普通集群和镜像集群
+
+**普通集群**
+
+![普通集群](res/集群.png)
+
+基于元数据共享集群, 有元数据节点**单机故障**
+
+元数据包括以下几个部分:
+
+-   队列元数据: 队列的名称及属性
+-   交换器: 交换器的名称及属性
+-   绑定关系元数据: 交换器与队列或者交换器与交换器
+-   vhost 元数据: 为 vhost 内部的队列,交换器和和绑定提供命名空间及安全数据之间的绑定关系
+
+**镜像集群**
+
+![镜像集群](res/集群1.png)
+
+镜像集群是指普通集群的基础上, 通过 policy 实现. 没有元数据的单点故障问题
+
+**Shovel/Federation 和 RabbitMQ 集群对比**
+
+| Shovel/Federation                                                   | Cluster                                                                                                        |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 各个 Broker 之间逻辑分类                                            | 逻辑上是个 Broker 节点                                                                                         |
+| 各个 Broker 之间可以运行不同版本的 Erlang 和 RabbitMQ               | 各个 Broker 之间必须是相同版本的 Erlang 和 RabbitMQ                                                            |
+| 各个 Broker 之间可以在广域网中相连, 当然必须要授予适当的用户和权限  | 各个 Broker 之间必须在可信赖的局域网中连通, 通过 Erlang 内部节点传递信息, 但节点之间必须有相同的 Erlang cookie |
+| 各个 Broker 之间可以任何拓扑逻辑部署连接可以是单向或者双向的        | 各个 Broker 之间都是双向连接其他节点                                                                           |
+| 从 CAP 理论中选择了 AP, 即可用性和分区容错性                        | 从 CAP 中选择了 CA, 即一致性和可用性                                                                           |
+| 一个 Broker 的交换器可以是 Federation/Shovel 生成的, 也可以是本地的 | 集群中所有的 Broker 交换器都是一样的, 要么全有要么全无                                                         |
+| 客户端能看到它锁连接的 Broker 节点上的队列                          | 客户端连接到集群中的任何 Broker 节点都能看到所有的队列                                                         |
 
 ---
 

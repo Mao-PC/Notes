@@ -172,13 +172,13 @@ channel.basicPublish("", "queue1", MessageProperties.PERSISTENT_TEXT_PLAIN, "per
 channel.exchangeDeclare("ps_test", "fanout", true);
 ```
 
-## RabbitMQ 的内存管理
+### RabbitMQ 的内存管理
 
-## RabbitMQ 内存告警
+#### RabbitMQ 内存告警
 
 当内存使用超过配置的阈值或者磁盘剩余空间低于配置的阈值时, RabbitMQ 会暂时阻塞客户端连接, 并且停止接收从客户端发来的消息, 以此避免服务崩溃, 客户端和服务端的心跳检测也会失效.
 
-![内存告警](res/内存告警.png)
+![内存告警](res/内存警告.png)
 
 当出现该情况时, 可以通过管理命令临时调整内存大小
 
@@ -217,7 +217,7 @@ rabbitmqtl set_vm_memory_high_wartermark <fraction>
 -   relative 相对值: 即 fraction, 建议在 0.4~0.66 之间, 不建议超过 0.7
 -   absolute 绝对值: 单位为 kb, mb, gb, 对应的命令为 `rabbitmqtl set_vm_memory_high_wartermark absolute <value>`
 
-### RabbitMQ 内存换页
+##### RabbitMQ 内存换页
 
 在某个 Broker 节点触及内存并阻塞生产者之前, 它会尝试将队列中的消息换页到磁盘以释放内存空间. 持久化和非持久化的消息都会被转存到磁盘中, 其中持久化的消息本身就在磁盘中有一份副本, 这里就会将持久化的消息从内存中清除
 
@@ -231,9 +231,9 @@ vm_memory_high_watermark_paging_ratio = 0.5
 
 如果将 vm_memory_high_watermark_paging_ratio 设置为 0.75, 内存阈值为默认的 0.4, 那么就会在内存使用达到 30% 时进行换页, 并在 40% 时阻塞生产者. 当 vm_memory_high_watermark_paging_ratio > 1 时, 相当于禁用了换页功能
 
-## RabbitMQ 磁盘控制
+### RabbitMQ 磁盘控制
 
-### RabbitMQ 磁盘告警
+#### RabbitMQ 磁盘告警
 
 当**磁盘剩余空间低于确定的阈值**时, RabbitMQ 同一会阻塞生产者, 这样可以避免因非持久化消息持续换页而耗尽磁盘空间导致服务奔溃
 
@@ -258,6 +258,70 @@ rabbitmqctl set_disk_free_limit mem_relative <fraction>
 disk_free_limit.absolute = 50mb
 disk_free_limit.relative = 2.0
 ```
+
+## RabbitMQ 消息可靠性
+
+一般从三方面考虑:
+
+-   发送可靠性: 确保消息成功发送到 Broker
+-   存储可靠性: Broker 对消息持久化, 确保不会丢失
+-   消费可靠性: 确保消息成功被消费
+
+### 发送可靠性
+
+一般消息被分为三个层级:
+
+-   At Most Once: 最多一次, 消息可能会丢失, 单绝对不会重复传输
+-   At Least Once: 最少一次, 消息绝对不会丢失, 但可能是会重复传输
+-   Exactly Once: 恰好一次, 每个消息会被传输一次且仅传输一次
+
+在 RabbitMQ 中, 值支持 `最多一次` 和 `最少一次`
+
+在 `最少一次` 的投递实现需要考虑以下几方面内容:
+
+-   消息生产者开启事务机制或者 publisher confirm 机制, 以确保消息可以可靠的传递到 RabbitMQ 中
+-   生产者需要配合使用 mandatory 参数或者备份交换器来确保消息能从交换器路由到队列中, 进而能够保存下来而不被丢弃
+
+`最多一次` 无需考虑以上方面, 生产者随意发送, 不过这样很难保证消息回表发送成功
+
+RabbitMQ 确保发送可靠性流程:
+
+![RabbitMQ确保发送可靠性流程](res/发送可靠性.png)
+
+### 消费可靠性
+
+消费者在消费消息的同时, 需要将 autoAck 设置为 false, 然后通过手动确认的方式去确认依据正确消费的消息, 以免在消费端引起不必要的消息丢失
+
+## RabbitMQ 的插件机制
+
+RabbitMQ 可以通过插件来扩展多种核心功能: 支持多协议, 系统监控状态, 其他交互类型...
+
+RabbitMQ 内部一些插件, 通过 rabbitmq-plugins list 命令来查看插件列表
+
+下图就是 RabbitMQ 某个版本的插件列表
+
+![插件](res/插件.png)
+
+通过 rabbitmq-plugins 命令可以启用或者禁用插件
+
+```sh
+rabbitmq-plugins enable plugins-name
+rabbitmq-plugins disable plugins-name
+```
+
+常用插件:
+
+rabbitmq_auth_mechanism_ssl : 身份验证机制插件, 允许客户端使用 x509 证书和 TLS(PKI)证书进行身份验证
+
+rabbitmq_event_exchange: 事件分发插件, 客户端可以接收到 Broker 的 queue.deleted, exchange.created, binding.created 等事件
+
+rabbitmq_management: 基于 web 界面的管理/监测插件
+
+rabbitmq_management_agent: 启用 rabbitmq_management 时会自动启用此插件, 用于查看集群节点
+
+rabbitmq_mqtt: RabbitMQ 支持 MQTT 协议
+
+rabbitmq_web_mqtt: RabbitMQ 通过 WebSocket 订阅消息, 基于 MQTT 协议
 
 ---
 

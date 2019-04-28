@@ -62,7 +62,7 @@ bin/tools.sh org.apache.rocketmq.example.quickstart.Producer
 sh bin/tools.sh org.apache.rocketmq.example.quickstart.Consumer
 ```
 
-[代码示例](../../../../资料/subject-2-mq-master/rocketmq-demo1/src/main/java/com/study/rocketmq)
+[代码示例](https://github.com/Mao-PC/Notes/tree/master/%E8%B5%84%E6%96%99/subject-2-mq-master/rocketmq-demo1/src/main/java/com/study/rocketmq)
 
 ## RocketMQ 架构方案及角色详解
 

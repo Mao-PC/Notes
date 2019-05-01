@@ -2,6 +2,8 @@
 
 # Kafka
 
+关于Kafka资料请参考: [预习资料](https://github.com/Mao-PC/Notes/tree/master/Middle/mq/kafka/%E9%A2%84%E4%B9%A0%E8%B5%84%E6%96%99)
+
 ## 简介
 
 官网: http://kafka.apache.org/intro.html

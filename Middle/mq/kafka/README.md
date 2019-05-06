@@ -2,7 +2,9 @@
 
 # Kafka
 
-关于Kafka资料请参考: [预习资料](https://github.com/Mao-PC/Notes/tree/master/Middle/mq/kafka/%E9%A2%84%E4%B9%A0%E8%B5%84%E6%96%99)
+关于 Kafka 资料请参考: [预习资料](https://github.com/Mao-PC/Notes/tree/master/Middle/mq/kafka/%E9%A2%84%E4%B9%A0%E8%B5%84%E6%96%99)
+
+本文档应当和[预习资料](https://github.com/Mao-PC/Notes/tree/master/Middle/mq/kafka/%E9%A2%84%E4%B9%A0%E8%B5%84%E6%96%99)结合学习, 两者互为补充
 
 ## 简介
 
@@ -66,7 +68,11 @@ Kafka 是一个分布式流处理平台
 
     对于每一个 topic, Kafka 集群都会维持一个分区日志(log), 如图:
 
-    ![topic结构](http://kafka.apache.org/22/images/log_anatomy.png)![partition结构](http://kafka.apache.org/22/images/log_consumer.png)
+    ![topic结构](http://kafka.apache.org/22/images/log_anatomy.png)
+
+    **partition 结构**
+
+    ![partition结构](http://kafka.apache.org/22/images/log_consumer.png)
 
 -   **Distribution**
 
@@ -94,6 +100,21 @@ Kafka 是一个分布式流处理平台
 ![Kafka整体架构](res/Kafka整体架构.png)
 
 **Replication(备份)**: 为保证分布式可靠性, Kafka 0.8 开始对每个分区的数据进行备份(不同的 Broker 上), 防止一个 Broker 宕机造成分区数据不可用
+
+搞清楚 Kafka 中 Producer, Consumer, Topic, Partition 的关系, 主要需要弄清:
+
+-   **Consumer 是如何消费的?**
+
+    -   Consumer 数量 \< Partition 数量: 会出现一个 Consumer 消费多个 Partition 的情况
+    -   Consumer 数量 = Partition 数量: 每个 Consumer 分配一个 Partition 进行消费
+    -   Consumer 数量 > Partition 数量: 每个 Consumer 分配一个 Partition 进行消费, 多余的 Consumer 不做任何消费
+
+    总之每个 Partition 只有一个 Consumer 进行消费
+
+-   **Producer 是如何向 Broker 中的 Partition 中发送消息的?**
+    由 Topic 决定的
+    -   默认是轮询存放, Broker 每次接收到消息时, 先要检查有多少个 Partition, 然后轮询存放.
+    -   开发人员也可以自定义 hash 来选择 Partition
 
 ## Kafka 的使用场景
 

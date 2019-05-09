@@ -13,7 +13,7 @@
 
     -   [Nginx](负载均衡/nginx/README.md)
     -   [LVS](负载均衡/lvs/README.md)
-    -   [云计算平台](负载均衡/云计算平台/README.md)
+    -   [云计算平台](负载均衡/cdn/README.md)
 
 -   缓存中间件
 

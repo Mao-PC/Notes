@@ -4,6 +4,8 @@
 
 ## Memcached 入门
 
+文档地址: https://github.com/memcached/memcached/wiki
+
 Memcached 是一个缓存系统, 通过减轻数据库负载加速动态 web 应用
 
 -   本质就是一个内存 K-V 缓存
@@ -22,3 +24,11 @@ Memcached 是一个缓存系统, 通过减轻数据库负载加速动态 web 应
 -   每个命令的复杂度为 O(1). 慢速机上查询应该在 1ms 以下, 高端服务器可达每秒数百万
 -   缓存自动清除机制
 -   缓存失效机制
+
+具体搭建过程请参考: [memcached 单机到集群完整搭建过程](https://github.com/Mao-PC/Notes/blob/master/Middle/cache/memcached/memcached%E5%8D%95%E6%9C%BA%E5%88%B0%E9%9B%86%E7%BE%A4%E5%AE%8C%E6%95%B4%E6%90%AD%E5%BB%BA%E8%BF%87%E7%A8%8B.md.pdf)
+
+**常用命令**
+
+![常用命令](res/常用命令.png)
+
+Java 客户端 (xmemcached)

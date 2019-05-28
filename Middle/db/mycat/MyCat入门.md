@@ -59,3 +59,5 @@ MyCat 的工作原理就是**拦截**, 拦截了用户发来的 SQL 语句, 首�
 -   支持 zookeeper 协调主从切换、zk 序列、配置 zk 化（1.6）
 -   支持库内分表（1.6）
 -   集群基于 ZooKeeper 管理，在线升级，扩容，智能优化，大数据处理（2.0 开发版）。
+
+MyCat安装资料: [MyCat参考资料](https://github.com/Mao-PC/Notes/tree/master/Middle/db/4-%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%AD%E9%97%B4%E4%BB%B6/Mycat%E8%A1%A5%E5%85%85%E8%B5%84%E6%96%99)

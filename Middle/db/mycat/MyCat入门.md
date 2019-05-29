@@ -2,9 +2,13 @@
 
 # MyCat 入门
 
-## 简介
-
 官网: http://www.mycat.io/
+
+参考资料: [MyCat 权威指南](http://www.mycat.io/document/mycat-definitive-guide.pdf)
+
+案例参考: https://github.com/MyCATApache/Mycat-doc
+
+## 简介
 
 -   一个彻底开源的，面向企业应用开发的大数据库集群
 -   支持事务、ACID、可以替代 MySQL 的加强版数据库
@@ -60,4 +64,43 @@ MyCat 的工作原理就是**拦截**, 拦截了用户发来的 SQL 语句, 首�
 -   支持库内分表（1.6）
 -   集群基于 ZooKeeper 管理，在线升级，扩容，智能优化，大数据处理（2.0 开发版）。
 
-MyCat安装资料: [MyCat参考资料](https://github.com/Mao-PC/Notes/tree/master/Middle/db/4-%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%AD%E9%97%B4%E4%BB%B6/Mycat%E8%A1%A5%E5%85%85%E8%B5%84%E6%96%99)
+MyCat 安装资料: [MyCat 参考资料](https://github.com/Mao-PC/Notes/tree/master/Middle/db/4-%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%AD%E9%97%B4%E4%BB%B6/Mycat%E8%A1%A5%E5%85%85%E8%B5%84%E6%96%99)
+
+## 核心概念
+
+![核心概念](res/核心概念.png)
+
+逻辑概念:
+
+**逻辑库 :** MyCat 数据库服务中定义, 管理的数据库
+
+**逻辑表 :** 逻辑库中锁包含的分库分表存储的表
+
+**dataNode :** 数据节点 (分片节点), 逻辑表分片存放的节点
+
+**dataHost :** 数据主机 (节点主机), 数据节点所在的主机
+
+物理概念:
+
+**writeHost :** 写主机, 真实的数据库
+**readHost :** 读主机, 真实的数据库
+
+![schema](res/schema.png)
+
+具体每个标签的属性懒得抄了, 请参考 [MyCat 权威指南](http://www.mycat.io/document/mycat-definitive-guide.pdf)
+
+## 最佳实践
+
+简单小型项目配置
+
+![最佳实践](res/最佳实践.png)
+
+大小项目配置
+
+![最佳实践2](res/最佳实践2.png)
+
+MyCat 1.6 架构
+
+增加了 MyCat 的集群, 使用 ZooKeeper 做注册中心, 可以负载均衡
+
+![最佳实践3](res/最佳实践3.png)

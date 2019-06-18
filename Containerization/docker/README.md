@@ -272,7 +272,21 @@ docker import  a.tar - myCentos
 
 ## Dockerfile 构建私有镜像
 
+Dockerfile 是一个文本文件，其中包含了一条条的指令, **每一条指令构建一层**, 因此每一条指令的内容就是描述该层应当如何构建
+
+注意: <font color='red'>不是</font>构建的时候先读取这个文件解析里面的命令，然后根据命令来整体构建镜像。
+
 Dockerfile 具体属性可以参考: https://docs.docker.com/engine/reference/builder/ 或者 https://www.cnblogs.com/lighten/p/6900556.html
+
+构建 Docker 镜像应该遵循哪些**原则**？
+
+尽量保持镜像功能的明确和内容的精简，要点包括：
+
+-   尽量选取满足需求但较小的基础系统镜像，建议选择 debian:wheezy 镜像，仅有 86MB 大小
+-   清理编译生成文件、安装包的缓存等临时文件
+-   安装各个软件时候要指定准确的版本号，并避免引入不需要的依赖
+-   从安全的角度考虑，应用尽量使用系统的库和依赖
+-   使用 Dockerfile 创建镜像时候要添加.dockerignore 文件或使用干净的工作目录
 
 **特殊说明 :**
 

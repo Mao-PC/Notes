@@ -50,6 +50,33 @@ RPC 调用过程中需要将参数编组为消息进行发送, 接受方需要�
 > 在 TCP (网络传输控制协议) 上可选用或自定义消息协议来完成 RPC 消息交互
 > 我们可以选用通用的标准协议 (如: http, https), 也可以根据自身的需要来自定义消息协议
 
+**常见的 RPC 协议**
+
+![常见的RPC](res/常见的RPC.png)
+
+## RPC 框架
+
+Java 领域的 RPC 框架:
+
+传统的 webservice 框架: Apache CXF, Apache Axis2, Java 自带的 JAX-WS 等等. WebService 框架大多基于标准的 SOAP 协议
+
+新兴的微服务框架: Dubbo, SpringCloud, Apache Thrift 等等
+
+**为什么要用 RPC**
+
+- 服务化
+- 可重用
+- 系统间交互调用
+
+**RPC 核心概念术语**
+
+- Client, Server, calls, replies(应答), service, programs, procedures, version, marshalling(编组), unmarshalling(解组)
+
+- 一个网络服务由一个或多个远程程序集构成
+- 一个远程程序实现一个或多个远程过程
+- 过程, 过程的参数/结果在程序协议说明书中定义说明
+- 为兼容程序协议变更, 一个服务端可能支持多个版本的远程程序
+
 ---
 
 [分布式](../README.md)

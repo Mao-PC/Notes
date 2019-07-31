@@ -1,0 +1,33 @@
+[0719/103635:INFO:exception_record.cc(518)] [QB]Process ID: 8056 Type: 2
+[0719/103636:INFO:http_cache_transaction.cc(72)] IgnoreZeroCacheError: 0
+[0719/162622:INFO:exception_record.cc(518)] [QB]Process ID: 16796 Type: 4
+[0721/105735:INFO:exception_record.cc(518)] [QB]Process ID: 15520 Type: 2
+[0723/112525:WARNING:spdy_session.cc(2455)] Received HEADERS for invalid stream 97
+[0723/112525:WARNING:spdy_session.cc(2455)] Received HEADERS for invalid stream 99
+[0723/112526:WARNING:spdy_session.cc(2455)] Received HEADERS for invalid stream 229
+[0723/112526:WARNING:spdy_session.cc(2455)] Received HEADERS for invalid stream 233
+[0723/112526:WARNING:spdy_session.cc(2455)] Received HEADERS for invalid stream 235
+[0723/112526:WARNING:spdy_session.cc(2455)] Received HEADERS for invalid stream 231
+[0723/134338:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/134343:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/134348:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/134353:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/134358:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/134403:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/144148:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/144153:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/144158:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/144201:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/144203:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/144215:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/144222:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/144227:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/144232:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/144237:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/144242:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/144247:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/144247:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/144247:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/194948:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/195013:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0723/195046:ERROR:browser_gpu_channel_host_factory.cc(119)] Failed to launch GPU process.

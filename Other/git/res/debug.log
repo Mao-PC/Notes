@@ -14,3 +14,5 @@
 [0801/171258:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
 [0801/171303:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
 [0801/184634:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0802/095041:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.
+[0802/113555:WARNING:dns_config_service_win.cc(674)] Failed to read DnsConfig.

@@ -4,3 +4,4 @@
 - [进阶操作](进阶操作.md)
 - [分支基础操作](分支操作.md)
 - [分支冲突和版本穿梭](分支冲突.md)
+- [checkout 和 stash](checkout&stash.md)

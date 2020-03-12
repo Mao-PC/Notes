@@ -4,6 +4,8 @@
 [SQL 优化](optimization/README.md)  
 [MySQL Q&A](Q&A/README.md)
 
+[高性能MySQL读书笔记](高性能MySQL/README.md)
+
 ---
 
 [主页](../../../../)

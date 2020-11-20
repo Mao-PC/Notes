@@ -56,4 +56,85 @@ Memcached 没有分布式功能, 所以不论是集群还是主从备份, 都需
 3. 乐观锁实现: 计划任务多实例部署, 通过 cas 实现不重复执行
 4. 防止重复处理: cas 命令
 
+
+
+## Memcached 持久化
+
+
+
+**ExtStore 机制**
+
+1. extStore 是把key 放在内存, 把value放入到flash等介质中的一种持久化方式, 注意是为了解决内存存储容量的瓶颈
+2. 使用场景是: value 很大, 存储时间很长. 成本太高的情况下, 不适用普通硬盘
+3. Version 1.5.4 + 支持
+
+
+
+持久化(写入 ExtStore)的过程:
+
+1.  LRU-Tail 
+
+   当整体内存不足的时候, 进行 LRU 淘汰时, 会选取出需要淘汰的 item; 如果 item 大于等于最新持久化大小 (默认是 512 bytes), 并且有可用的 `write-buf`. 那么则写入到 `write-buf`
+
+2. Write-Buf
+
+   当 `write-buf` 满了的时候 (默认 4M) 就会封装成相关的持久化 IO 事件, 通过持久化IO Threads 进行写入到相关的持久化介质中
+
+3. extStore
+
+
+
+读取ExtStore过程
+
+1. worker-thread 读请求 
+
+   处理读请求的时候, 如果发现有 `ITEM_HEAD` 标识, 说明这个数据是持久化存储的. 则封装成 `OBJ_IO_READ` 事件发给 `IO_Thread` 处理持久化读写事件
+
+2. `IO_Thread` store 读取
+
+   从持久化介质读取智慧, 直接调用相关的回调函数, 设置链接状态为回复的状态即可. 后续则是正常请求的 `libevent` 事件处理逻辑
+
+3. `worker-thread` 回复
+
+
+
 ## Memcached 内存管理
+
+... 略
+
+
+
+## Memcached VS Redis
+
+
+
+- 性能上
+
+  Redis在6.0之后, 会使用多线程来处理IO
+
+  - 单线程 VS 多线程 多线程在多核场景下, QPS会有提升; 在单核的虚拟机上Redis的表现会很好, 但如果是多核(如 有10 +, 50 +核的宿主机) 上利用率就不那么高了
+  - 从稳定性上, 由于Redis主线程为单线程模型处理大Key就会造成阻塞, 从客户端角度来说就是RT变长; Memcached多线程只会阻塞一个线程, 相对来说影响较小
+
+
+
+- 可靠性
+  - Redis官方提供了主从和集群模式
+  - Memcached 官方提供了单实例, 只能通过第三方实现集群(Twemproxy)
+
+
+
+- 数据持久化
+  - RDB and AOF
+  - ExtStore 伪持久化, 只有大于512字节的value才会 
+
+
+
+- 存储语义
+  - Redis 提供了各种数据类型的value
+  - Memcached 值提供了String 的 k-v
+
+
+
+- 数据规模
+  - Redis 纯内存, 单实例存储的数据规模有限; 在集群分片下会有很好的表现
+  - Memcached ExtStore 内存的扩展, 在某些场景下能支持大存储; 但是只能依靠第三方集群

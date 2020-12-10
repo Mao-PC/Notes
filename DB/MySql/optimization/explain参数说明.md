@@ -1,3 +1,5 @@
+[toc]
+
 ## explain 的参数说明
 
 ---
@@ -41,7 +43,7 @@ id 值不同, 值越大越优先执行
 | UNION RESULT | 告知开发人员, 哪些些表存在 union 查询                                                                                                                                                                                                                                                                                                                                |
 
 ![explain_select_type](./res/explain_select_type.png)
-上图说明了 derived 的第一种情况, table 为<derived2>, 对应了 id 为 2,select_type 为 derived 的子查询
+上图说明了 derived 的第一种情况, table 为 `<derived2>`, 对应了 id 为 2,select_type 为 derived 的子查询
 
 ![explain_select_type1](./res/explain_select_type1.png)
 上图是 derived 的第二种情况, id 为 null 的行 select_type 为 union result, table 为<union2,3>, 对应了 id 为 2 和 id 为 3 的查询结果进行了 union
@@ -54,15 +56,22 @@ id 值不同, 值越大越优先执行
 **system > const > eq_ref > ref > range > index > all**  
 从左到右效率逐渐降低, system 和 const 只是理想情况; 实际优化后能达到 ref 和 range
 
-| type 类型 | 具体情况                                                                                                                                            | 结果表现                                                           |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| system    | 只有一条数据的系统表或衍生表只有一条数据的主查询                                                                                                    | 结果只有一条数据                                                   |
-| const     | 仅能查的一条数据的 sql, 用于 primary key 或者 unique 索引 (与索引类型有关)                                                                          | 结果只有一条数据                                                   |
-| eq_ref    | 唯一性索引, 对于<strong>每个</strong>索引键的查询, 返回匹配<strong>唯一一行</strong>数据 (有且只有一个, 不能多, 不能没有), 常见于唯一索引和主键索引 | 结果多条, 但每条数据是唯一的                                       |
-| ref       | 非唯一性索引, 对于每个索引键, 返回匹配的所有行                                                                                                      | 结果多条, 每条数据是 0 条或多条                                    |
-| range     | 检索指定范围的行, where 条件后是一个查询范围, 如: between, > , < , >= ... 特殊: in 有时会失效, 从而转为 all 级别                                    | select t.\* from teacher t where t.id < 3 , t.id 为索引            |
-| index     | 查询全部索引中数据                                                                                                                                  | select tid from teacher; tid 为 teacher 表的索引, 只需要扫描索引表 |
-| all       | 查询全部表中数据                                                                                                                                    | select name from teacher; name 不是 teacher 表的索引, 需要全表扫描 |
+下表中性能从上到下性能逐渐变差
+
+| type 类型       | 具体情况                                                     | 结果表现                                                     |
+| --------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| system          | 只有一条数据的系统表或衍生表只有一条数据的主查询             | 结果只有一条数据                                             |
+| const           | 仅能查的一条数据的 sql, 用于 primary key 或者 unique 索引 (与索引类型有关) | 结果只有一条数据                                             |
+| eq_ref          | 唯一性索引, 对于<strong>每个</strong>索引键的查询, 返回匹配<strong>唯一一行</strong>数据 (有且只有一个, 不能多, 不能没有), 常见于唯一索引和主键索引 | 结果多条, 但每条数据是唯一的                                 |
+| ref             | 非唯一性索引, 对于每个索引键, 返回匹配的所有行               | 结果多条, 每条数据是 0 条或多条                              |
+| fulltext        | 查询过程中, 使用到了 fulltext 索引 (fulltext 在 InnoDB 只有 5.6 版本之后才支持) 全文索引需要特定的语法支持, 这里不做讨论 |                                                              |
+| ref_or_null     | 和 ref 查询类型, 在 ref 查询的基础上, 多加一个 null 值的查询 | `select * from ecs_users where email = 'xxx.com' or email is null;` |
+| index_merge     | 索引合并, 分别两个查询条件的结果再合并                       | `select * from ecs_users where email = 'xxx.com' or user_id = 1;` |
+| unique_subquery | IN 子查询的结果由聚簇索引或唯一索引覆盖, 需要关掉SQL优化才有可能出现, 这里不做讨论 |                                                              |
+| index_subquery  | 与 unique_subquery 类似, 但是用的二级索引                    |                                                              |
+| range           | 检索指定范围的行, where 条件后是一个查询范围, 如: `between, > , < , >= , <> , is null, in , <=>` 特殊: in 有时会失效, 从而转为 all 级别 | `select t.* from teacher t where t.id < 3`   t.id 为索引     |
+| index           | 查询全部索引中数据                                           | `select tid from teacher;` tid 为 teacher 表的索引, 只需要扫描索引表 |
+| all             | 查询全部表中数据                                             | `select name from teacher;` name 不是 teacher 表的索引, 需要全表扫描 |
 
 #### possible_keys 和 key
 
@@ -109,82 +118,92 @@ name2 是一个 varchar(20) 的索引, 所以此时的 key_len = 20 \* 3 + 1(nul
 
 #### Extra
 
-**using filesort** : 性能消耗比较大, 需要额外的一次排序(查询), 常见于 order by 语句中
+- **using filesort** : 性能消耗比较大, 需要额外的一次排序(查询), 常见于 order by 语句中
 
-> '排序' 的前提是必须先执行查询, 然后才能执行排序操作
+  > '排序' 的前提是必须先执行查询, 然后才能执行排序操作
 
-![explain_extra](./res/explain_extra.png)
-对于上图中的查询来说, 查询字段为 a1, 但是根据 a2 字段排序, 所以需要 '额外' 的执行一次查询
+  ![explain_extra](./res/explain_extra.png)
+  对于上图中的查询来说, 查询字段为 a1, 但是根据 a2 字段排序, 所以需要 '额外' 的执行一次查询
 
-![explain_extra1](./res/explain_extra1.png)
-上图中, 表中存在了复合索引 idx_a1_a2_a3 (a1, a2, a3), 这里也出现了 using filesort, 因为这里把 复合索引中的 a2 '跨'了过去
+  ![explain_extra1](./res/explain_extra1.png)
+  上图中, 表中存在了复合索引 idx_a1_a2_a3 (a1, a2, a3), 这里也出现了 using filesort, 因为这里把 复合索引中的 a2 '跨'了过去
 
-**_小结:_**
+  **_小结:_**
 
-| 索引类型 | 出现 using filesort 的原因                                                           | 避免方法                                               |
-| -------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| 单索引   | 如果排序和查找的是同一个字段, 就不会出现 using filesort , 如果不是同一个字段就会出现 | where 哪些字段, 就 order by 哪些字段                   |
-| 符合索引 | 不能跨列 (最佳左前缀)                                                                | where 和 order by 按照复合索引的顺, 不要跨列或无序使用 |
+  | 索引类型 | 出现 using filesort 的原因                                                           | 避免方法                                               |
+  | -------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+  | 单索引   | 如果排序和查找的是同一个字段, 就不会出现 using filesort , 如果不是同一个字段就会出现 | where 哪些字段, 就 order by 哪些字段                   |
+  | 符合索引 | 不能跨列 (最佳左前缀)                                                                | where 和 order by 按照复合索引的顺, 不要跨列或无序使用 |
 
-**using temporary** : 性能损耗大, 用到了临时表. 常见于 group by 语句中. 如果已经有表了, 但不适用, 必须再来一张
+- **using temporary** : 性能损耗大, 用到了临时表. 常见于 group by 语句中. 如果已经有表了, 但不适用, 必须再来一张
 
-> sql 的执行顺序: 先 where 后 group by
+    > sql 的执行顺序: 先 where 后 group by
 
-分别执行下列 sql:
+    分别执行下列 sql:
 
-```sql
-select a1 from test02 where a1 in ('1', '2', '3') group by a2;
-```
+    ```sql
+    select a1 from test02 where a1 in ('1', '2', '3') group by a2;
+    ```
 
-![explain_extra2](./res/explain_extra2.png)
+    ![explain_extra2](./res/explain_extra2.png)
 
-```sql
-select * from test03 where test03 where a2=2 and a4=4 group by a2, a4;
-```
+    ```sql
+    select * from test03 where test03 where a2=2 and a4=4 group by a2, a4;
+    ```
 
-![explain_extra3](./res/explain_extra3.png)
+    ![explain_extra3](./res/explain_extra3.png)
 
-```sql
-select * from test03 where test03 where a2=2 and a4=4 group by a3;  # 这里先执行 where a2=2 and a4=4 查询的结果集中没有 a3, 所以在执行 group by 需要另一个临时表
-```
+    ```sql
+    select * from test03 where test03 where a2=2 and a4=4 group by a3;  # 这里先执行 where a2=2 and a4=4 查询的结果集中没有 a3, 所以在执行 group by 需要另一个临时表
+    ```
 
-![explain_extra4](./res/explain_extra4.png)
-**_避免方法:_** 查询哪些列就根据哪些列 group by
+    ![explain_extra4](./res/explain_extra4.png)
+    **_避免方法:_** 查询哪些列就根据哪些列 group by
 
-**using index** : 性能提升, 索引覆盖. 原因: **不读取原文件, 只从索引文件中获取数据 (不需要回表查询)**. 只要使用到的列, 全部都在索引中, 就是 using index.
+- **using index** : 性能提升, 索引覆盖. 原因: **不读取原文件, 只从索引文件中获取数据 (不需要回表查询)**. 只要使用到的列, 全部都在索引中, 就是 using index.
 
-```sql
-select a1, a2 from test02 where a1 = '' or a2 = '';
-```
+    ```sql
+    select a1, a2 from test02 where a1 = '' or a2 = '';
+    ```
 
-![explain_extra5](./res/explain_extra5.png)
-从上图中可以看出, test02 表中有一个复合索引 idx_a1_a2_a3, 在查询时值查了 a1,a2 都在复合索引中, 索引此时 extra 为 using index
+    ![explain_extra5](./res/explain_extra5.png)
+    从上图中可以看出, test02 表中有一个复合索引 idx_a1_a2_a3, 在查询时值查了 a1,a2 都在复合索引中, 索引此时 extra 为 using index
 
-索引覆盖 (using index) 会对 possible_keys 和 key 造成影响:
+    索引覆盖 (using index) 会对 possible_keys 和 key 造成影响:
 
-```sql
-select a1, a2 from test02;
-```
+    ```sql
+    select a1, a2 from test02;
+    ```
 
-![explain_extra6](./res/explain_extra6.png)
+    ![explain_extra6](./res/explain_extra6.png)
 
-**_影响:_**
+    **_影响:_**
 
--   如果有 where , 索引只会出现在 key 中
--   如果没有 where , 索引回出现在 possible_keys 和 key 中
+    -   如果有 where , 索引只会出现在 key 中
+    -   如果没有 where , 索引回出现在 possible_keys 和 key 中
 
-**using where** : 需要回表查询  
-假设 age 为索引列, 查询语句为
+- **using where** : 需要回表查询  
+    假设 age 为索引列, 查询语句为
 
-```sql
-select age , name  from ... where age = ... ; # 这条sql中必须回原表查name字段 , 所以会显示 using where
-```
+    ```sql
+    select age , name  from ... where age = ... ; # 这条sql中必须回原表查name字段 , 所以会显示 using where
+    ```
 
-**impossible where** : where 永远为 false
+- **impossible where** : where 永远为 false
 
-```sql
-select * from test02 where a1 = 'y' and a1 = 'x';
-```
+    ```sql
+    select * from test02 where a1 = 'y' and a1 = 'x';
+    ```
+
+- **select tables optimized away** 通过聚合函数来访问某个索引字段时, 优化器一次定位到所需要的数据行完成整改查询 (不需要优化)
+
+    ```sql
+    select * from users where user_id = (
+    	select max(user_id) from users where email is null
+    );
+    ```
+
+    
 
 [extra 优化示例](./extra优化示例.md)
 

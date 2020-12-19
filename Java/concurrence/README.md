@@ -5,6 +5,7 @@
     -   [线程基础](./线程基础.md)
     -   [线程安全](./可见性问题.md)
     -   [JUC 详解](./JUC详解.md)
+    -   [synchronize 与 AQS](synchronize与AQS.md)
 
 -   高并发网络编程
     -   [TCP/UDP 和 BIO](./TCPUDP和BIO.md)

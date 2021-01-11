@@ -104,3 +104,7 @@ MyCat 1.6 架构
 增加了 MyCat 的集群, 使用 ZooKeeper 做注册中心, 可以负载均衡
 
 ![最佳实践3](res/最佳实践3.png)
+
+
+
+安装请参考 [在 Centos7 上安装 MyCat](../4-数据库中间件/Mycat补充资料/Centos7上Mycat安装.pdf)

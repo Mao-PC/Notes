@@ -25,3 +25,5 @@
     -   [数据库中间件设计要点](db/设计要点.md)
     -   [MyCat](db/mycat/README.md)
     -   [Sharding-Sphere (Sharding-JDBC)](db/shardingjdbc/README.md)
+
+- [搜索引擎](搜索引擎/README.md)
